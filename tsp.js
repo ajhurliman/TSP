@@ -20,17 +20,13 @@ var howManyLosers = Math.ceil(popSize*.05); //number of the poorest performers t
 var mapSize = 100; //size of one leg of the grid system (x by x square)
 var i;
 var j;
-var destinations = [];
+var destinations = []; //these are the places to visit, they don't change after being seeded
 var mainLoop;
+var topScore = 999999;
 
 
 /*objects*/
-for (i = 0; i < popSize; i++) {
-	population[i] = {
-		route: [],
-		routeDist: 0
-	};
-}
+
 
 Array.prototype.swap = function(x, y) {
 	var swapTemp = this[x];
@@ -39,12 +35,44 @@ Array.prototype.swap = function(x, y) {
 	return this;
 }
 
+main();
+
 /*functions*/
 
 /*This determines which places the salesman has to go. The number of places is given by
 the nodeCount variable. Each destination is a coordinate pair on a X-Y grid system*/
 
-var generateDestinations = function(nodeCount) {
+function main() {
+	for (i = 0; i < popSize; i++) {
+		population[i] = {
+			route: [],
+			routeDist: 0
+		};
+	}
+	generatePop(0, popSize);
+	destinations = generateDestinations(nodeCount);
+
+	for (mainLoop = 0; mainLoop < iterationCount; mainLoop++) {
+		console.log(mainLoop);
+		getDist();
+		sortPop();
+		mutateWinners();
+		//generatePop(popSize-howManyLosers, popSize);
+	}
+
+	console.log("The destinations: " + destinations);
+
+	console.log("The top ten winners are...");
+	for (i = 0; i < 10; i++) {
+		console.log("Salesman #" + i + ":");
+		console.log("route: " + population[i].route);
+		console.log("routeDist: " + population[i].routeDist);
+	}
+	console.log("and the top score is: " + topScore);
+};
+
+
+function generateDestinations(nodeCount) {
 	var tempDest = [];
 
 	for (i = 0; i < nodeCount; i++) {
@@ -59,7 +87,8 @@ var generateDestinations = function(nodeCount) {
 };
 
 
-var generatePop = function(lowRange, highRange) {
+/*replaces all elements from lowRange to highRange with freshly randomized arrays*/
+function generatePop(lowRange, highRange) {
 	for (var i = lowRange; i < highRange; i++) {
 		population[i].route = generateSalesman(nodeCount);
 	}
@@ -70,7 +99,7 @@ var generatePop = function(lowRange, highRange) {
 makes a random route for each salesman. when one node is selected it's retired
 from the options of selectable nodes so that every node is visited exactly once
 */
-var generateSalesman = function(nodeCount) {
+function generateSalesman(nodeCount) {
 	var randomSalesman = [];
 	var burnDownArray = [];
 	var randKey;
@@ -88,7 +117,7 @@ var generateSalesman = function(nodeCount) {
 
 
 //calculates the distance of a route & assigns those to their respective objects
-var getDist = function() {
+function getDist() {
 	var i;
 	var j;
 	var xSquared = 0;
@@ -114,21 +143,27 @@ var getDist = function() {
 	}
 };
 
-
-var sortPop = function() {
+/*sorts the population by the distance it takes them to travel their route*/
+function sortPop() {
 	population.sort(compareNum);
+	if (population[0].routeDist < topScore) {
+		topScore = population[0].routeDist;
+	}
+/*	console.log(topScore);
+	console.log(population[0].routeDist);*/
 };
 
-
+//used in sortPop to compare route sizes
 function compareNum(a, b) {
 	return a.routeDist - b.routeDist;
 };
 
-//mutateWinners just makes a simple swap between two elements in each of the winners' routes
-var mutateWinners = function() {
+/*just makes a simple swap between two elements in each of the winners' routes
+rev2: the top 25% doesn't get mutated so it keeps high scorers. this increased the scores and lowered the range of the final generation's top 10*/
+function mutateWinners() {
 	var swapElement1;
 	var swapElement2;
-	for (i = 0; i < popSize - howManyLosers; i++) {
+	for (i = popSize/4; i < popSize - howManyLosers; i++) {
 		swapElement1 = Math.floor(Math.random()*nodeCount);
 		swapElement2 = Math.floor(Math.random()*nodeCount);
 		// \/ \/ \/ the while element ensures the two elements aren't the same \/ \/ \/
@@ -138,25 +173,3 @@ var mutateWinners = function() {
 		population[i].route.swap(swapElement1, swapElement2);
 	}
 };
-
-
-generatePop(0, popSize);
-destinations = generateDestinations(nodeCount);
-
-for (mainLoop = 0; mainLoop < iterationCount; mainLoop++) {
-	console.log(mainLoop);
-	getDist();
-	sortPop();
-	mutateWinners();
-	generatePop(popSize-howManyLosers, popSize);
-}
-
-console.log("The destinations: " + destinations);
-
-console.log("The top ten winners are...");
-for (i = 0; i < 10; i++) {
-	console.log("Salesman #" + i + ":");
-	console.log("route: " + population[i].route);
-	console.log("routeDist: " + population[i].routeDist);
-}
-
